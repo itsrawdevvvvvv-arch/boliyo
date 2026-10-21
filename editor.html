@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor · Boliyo</title>
+<meta name="description" content="Boliyo editor — drop a video, caption it in Hinglish, style every word, export MP4 or SRT. Runs entirely in your browser.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Poppins:wght@600;700;800&family=Anton&family=Bebas+Neue&family=Playfair+Display:wght@700;800&family=Space+Grotesk:wght@600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  .cap-line .w{transition:transform .14s cubic-bezier(.3,1.4,.5,1),opacity .18s,color .18s}
+  #behindLayer{position:absolute;left:0;right:0;top:8%;text-align:center;font-family:'Anton',sans-serif;font-size:clamp(2.4rem,11vw,6rem);line-height:.9;pointer-events:none;letter-spacing:.01em;text-shadow:0 6px 22px rgba(0,0,0,.4);z-index:2}
+  .cap-layer{z-index:3}
+  #exportOverlay{position:fixed;inset:0;background:rgba(10,10,9,.82);backdrop-filter:blur(4px);display:none;place-items:center;z-index:300;text-align:center;color:#fff}
+  #exportOverlay.show{display:grid}
+  .exp-track{width:min(420px,80vw);height:10px;background:rgba(255,255,255,.15);border-radius:999px;overflow:hidden;margin:16px auto 0}
+  #exportBar{height:100%;width:0;background:var(--coral);transition:width .15s}
+  .ed-empty .dz{cursor:pointer}
+  .filebtn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:.45rem .9rem;font-weight:700;font-size:.82rem}
+  .filebtn:hover{background:rgba(255,255,255,.2)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body class="ed-body">
+
+<div class="ed-top">
+  <a class="logo" href="index.html"><span class="mark">B</span> Boliyo</a>
+  <span class="file" id="fileLabel">no video loaded</span>
+  <span class="spacer"></span>
+  <div class="toolbar">
+    <button class="filebtn" id="openFileBtn">📂 Open video</button>
+    <button class="filebtn" id="loadDemoBtn">▶ Load demo clip</button>
+    <button class="btn btn-coral btn-sm" id="exportVideoBtn">⬇ Export video</button>
+  </div>
+  <button class="filebtn" id="panelBtn" style="display:none">☰</button>
+</div>
+
+<div class="ed-main">
+  <!-- STAGE -->
+  <div class="ed-stage">
+    <div class="ed-canvas-wrap">
+      <div id="stage">
+        <video id="video" playsinline></video>
+        <div id="behindLayer"></div>
+        <div class="cap-layer" id="capLayer"><!-- caption renders here --></div>
+        <div class="ed-empty" id="edEmpty">
+          <div class="dz" id="edDrop">
+            <div class="big">Drop a video here</div>
+            <p class="small" style="margin-top:.5rem">MP4 · MOV · WebM · any size. Or <span style="color:var(--yellow)">load the demo clip</span>.</p>
+            <p class="tiny" style="margin-top:.6rem;opacity:.7">Nothing is uploaded — everything stays in your browser.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="transport">
+      <button class="tbtn" id="backBtn" title="Back 2s">⏮</button>
+      <button class="tbtn play" id="playBtn" title="Play / pause">▶</button>
+      <button class="tbtn" id="fwdBtn" title="Forward 2s">⏭</button>
+      <span class="time" id="timeLabel">00:00.00 / 00:00.00</span>
+      <button class="tbtn" id="addCueBtn" title="Add caption at playhead">＋</button>
+      <button class="filebtn" id="dictBtn" title="Dictate captions live">🎙 Dictate</button>
+    </div>
+    <div class="timeline">
+      <div class="tl-head"><span>Timeline · drag a block to move it</span><span id="selInfo">Whole video</span></div>
+      <div class="tl-track" id="tlTrack"></div>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <aside class="ed-panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="templates">Templates</button>
+      <button class="tab" data-tab="captions">Captions</button>
+      <button class="tab" data-tab="style">Style</button>
+      <button class="tab" data-tab="export">Export</button>
+    </div>
+
+    <div class="pane active" data-pane="templates">
+      <h4>Caption looks</h4>
+      <div class="tpl-row" id="tplPanel"></div>
+      <p class="hint" style="margin-top:10px">Tap a look — every caption follows it instantly. Then tune colours and size in <b>Style</b>.</p>
+    </div>
+
+    <div class="pane" data-pane="captions">
+      <h4>Script → timed captions</h4>
+      <div class="field">
+        <textarea id="scriptBox" rows="3" placeholder="Paste your script here, one line per caption, or a whole paragraph. Boliyo spreads it across the clip."></textarea>
+      </div>
+      <button class="btn btn-coral btn-sm btn-block" id="autoTimeBtn" style="margin-bottom:14px">⏱ Auto-time across the clip</button>
+      <h4>Caption lines</h4>
+      <div id="cueList"></div>
+      <p class="hint" style="margin-top:8px">Click a word pill to make it <b>pop</b> in the look's highlight colour. Click ▶ to jump to a line.</p>
+    </div>
+
+    <div class="pane" data-pane="style">
+      <h4>Look</h4>
+      <div class="field"><label>Template</label><div id="tplName" style="font-weight:800">Boliyo Glow</div></div>
+      <div class="field"><label>Caption colour</label><div class="swatches" id="colorRow"></div></div>
+      <div class="field"><label>Highlight colour</label><div class="swatches" id="hlRow"></div></div>
+      <div class="field"><label>Size · <span id="sizeVal">100%</span></label><input type="range" id="sizeRange" min="60" max="180" value="100"></div>
+      <div class="field"><label>Position from bottom · <span id="posVal">16%</span></label><input type="range" id="posRange" min="6" max="46" value="16"></div>
+      <h4>Frame</h4>
+      <div class="seg" data-aspect>
+        <button class="active" data-a="9:16">9:16</button>
+        <button data-a="16:9">16:9</button>
+        <button data-a="1:1">1:1</button>
+        <button data-a="4:5">4:5</button>
+      </div>
+      <p class="hint" style="margin-top:10px">9:16 for Reels &amp; Shorts · 16:9 for YouTube · 1:1 and 4:5 for the feed.</p>
+    </div>
+
+    <div class="pane" data-pane="export">
+      <h4>Video</h4>
+      <p class="hint" style="margin-bottom:10px">Burns the captions onto the video, in the frame you picked, and downloads a WebM. It plays the clip through once — keep the tab in front.</p>
+      <button class="btn btn-coral btn-block" id="exportVideoBtn2" onclick="document.getElementById('exportVideoBtn').click()">⬇ Export captioned video</button>
+      <h4>Captions</h4>
+      <button class="btn btn-cream btn-block" id="exportSrtBtn" style="margin-bottom:8px">⬇ Download SRT</button>
+      <label class="btn btn-ghost btn-block" style="border-color:rgba(255,255,255,.2);color:#fff;cursor:pointer">⬆ Import SRT
+        <input type="file" id="srtInput" accept=".srt,.txt" hidden>
+      </label>
+      <h4>Project</h4>
+      <p class="hint">Your captions are saved in this browser automatically. Nothing is sent anywhere in this build.</p>
+    </div>
+  </aside>
+</div>
+
+<input type="file" id="fileInput" accept="video/*" hidden>
+
+<div id="exportOverlay">
+  <div>
+    <h2 style="color:#fff">Rendering your reel</h2>
+    <p style="color:rgba(255,255,255,.8);margin-top:.4rem">Drawing captions onto every frame…</p>
+    <div class="exp-track"><div id="exportBar"></div></div>
+    <p id="exportPct" style="margin-top:.6rem;font-weight:800">0%</p>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/editor.js"></script>
+<script>
+  // apply a template passed from the gallery
+  document.addEventListener("DOMContentLoaded",function(){
+    var q=new URLSearchParams(location.search).get("tpl");
+    try{
+      var id=q||localStorage.getItem("boliyo:tpl");
+      if(id&&window.BOLIYO){ var t=window.BOLIYO.TEMPLATES.find(function(x){return x.id===id;}); if(t){ window.__boliyoTpl=t; } }
+    }catch(e){}
+    var b=document.getElementById("panelBtn"); if(b) b.style.display = window.innerWidth<=960?"block":"none";
+  });
+</script>
+</body>
+</html>

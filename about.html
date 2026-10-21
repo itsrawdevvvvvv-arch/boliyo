@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>About · Boliyo</title>
+<meta name="description" content="Boliyo is built for the way India talks — Hinglish and ten Indian languages, captioned in your browser.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Poppins:wght@600;700;800&family=Anton&family=Bebas+Neue&family=Playfair+Display:wght@700;800&family=Space+Grotesk:wght@600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="index.html"><span class="mark">B</span> Boliyo</a>
+    <div class="nav-links" id="navLinks"><a href="templates.html">Templates</a><a href="editor.html">Editor</a><a href="pricing.html">Pricing</a><a href="about.html">About</a></div>
+    <a class="btn btn-dark btn-sm nav-cta" href="editor.html">Open editor</a>
+    <button class="burger" id="burger">☰</button>
+  </div>
+</nav>
+
+<header class="hero" style="padding-bottom:20px">
+  <div class="wrap">
+    <span class="pill" style="background:var(--charcoal);color:#fff"><span class="dot"></span> Bharat first</span>
+    <h1 style="margin-top:1rem;max-width:18ch">Built in India, for Indian creators.</h1>
+    <p class="lede">Indian creators speak Hinglish — a fluid mix of Hindi and English that every auto driver, college kid and startup founder understands without thinking. Caption tools that learned English first tend to treat it like broken English.</p>
+  </div>
+</header>
+
+<section class="section" style="padding-top:20px">
+  <div class="wrap">
+    <div class="grid g2" style="gap:34px;align-items:start">
+      <div class="card card-coral"><h3>Why we built it</h3><p>We got tired of manually fixing captions after every upload. Switching between Hindi and English mid-sentence isn't something you can bolt onto a model that learned English first. So Boliyo times every word to the audio, and puts it all behind a simple editor.</p></div>
+      <div class="card"><h3>How it works</h3><p>Drop in a video and say which language it is in. Boliyo transcribes it and times every word to the audio. Pick a template or an AI Edits style, fix anything you want, and export. In this build, all of it runs on your own device.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head"><div class="eyebrow">Languages</div><h2>Eleven languages, plus English.</h2><p class="muted">Captions come out in the language's own script, in English letters the way Hinglish is usually typed, or translated into English.</p></div>
+    <div class="grid g4" id="langs"></div>
+  </div>
+</section>
+
+<section class="section on-coral" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head"><div class="eyebrow">What it's made of</div><h2>Small, plain, and fast.</h2></div>
+    <div class="grid g4">
+      <div class="card card-dark"><h3>HTML + CSS + JS</h3><p>No framework, no bundler, no build step. The whole site is static files you can read.</p></div>
+      <div class="card card-dark"><h3>Canvas renderer</h3><p>Exports draw every caption onto the video frame, then hand you a downloadable file.</p></div>
+      <div class="card card-dark"><h3>On-device</h3><p>Your video is never uploaded. Captions and projects stay in your browser.</p></div>
+      <div class="card card-dark"><h3>Open</h3><p>Fork it, restyle it, ship it. MIT licensed.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="contact" style="padding-top:0">
+  <div class="wrap">
+    <div class="cta-band">
+      <div class="blob one"></div><div class="blob two"></div>
+      <h2>Questions, feedback, or just want to talk captions?</h2>
+      <p>We would love to hear what you are making. Say hi and we will help you get your first reel out.</p>
+      <a class="btn btn-coral btn-lg" href="mailto:hello@boliyo.app">hello@boliyo.app</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><a class="logo" href="index.html" style="color:#fff"><span class="mark">B</span> Boliyo</a><p class="small" style="margin-top:1rem;color:rgba(255,255,255,.7)">Captions for the way India talks.</p></div>
+      <div><h4>Product</h4><a href="editor.html">Editor</a><a href="templates.html">Templates</a><a href="pricing.html">Pricing</a></div>
+      <div><h4>Company</h4><a href="about.html">About</a><a href="pricing.html#faq">FAQ</a></div>
+      <div><h4>Start</h4><a href="editor.html">Open editor</a><a href="index.html#how">How it works</a></div>
+    </div>
+    <div class="foot-bottom"><span>© 2026 Boliyo.</span><span>Made in India · plain HTML, CSS &amp; JS</span></div>
+  </div>
+</footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
