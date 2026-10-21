@@ -61,7 +61,8 @@ assets/css/style.css  design system
 assets/js/data.js     templates, sounds, languages
 assets/js/editor.js   the caption engine
 assets/js/app.js      site interactions
-assets/video/demo-reel.mp4  bundled demo clip
+assets/video/demo-reel.mp4   bundled demo clip (H.264)
+assets/video/demo-reel.webm  same clip (VP9) — auto-picked where MP4/H.264 is unavailable
 ```
 
 ## License
