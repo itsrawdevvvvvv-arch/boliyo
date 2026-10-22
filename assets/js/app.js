@@ -7,7 +7,9 @@ const D=window.BOLIYO||{};
 
 function nav(){
   const b=$("#burger"); if(!b)return;
-  b.addEventListener("click",()=>{ const n=$(".nav-links"); if(n){ const open=n.style.display==="flex"; n.style.display=open?"":"flex"; n.style.position="absolute"; n.style.top="74px"; n.style.left="0"; n.style.right="0"; n.style.flexDirection="column"; n.style.background="var(--coral)"; n.style.padding="14px 22px"; n.style.gap="4px"; } });
+  const n=$(".nav-links");
+  b.addEventListener("click",(e)=>{ e.stopPropagation(); n&&n.classList.toggle("open"); });
+  document.addEventListener("click",(e)=>{ if(n&&n.classList.contains("open")&&!e.target.closest(".nav-links,.burger")) n.classList.remove("open"); });
 }
 
 /* hero phone: cycle caption looks */

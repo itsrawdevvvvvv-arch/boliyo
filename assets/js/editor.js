@@ -5,6 +5,9 @@
 (function(){
 "use strict";
 const D = window.BOLIYO;
+/* resolve the vendored Whisper bundle relative to this script, whatever the deploy path */
+const SELF = (document.currentScript && document.currentScript.src) || "";
+const VENDOR_URL = SELF ? new URL("vendor/transformers.min.js", SELF).href : "assets/js/vendor/transformers.min.js";
 const $  = (s,r=document)=>r.querySelector(s);
 const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -25,6 +28,9 @@ const state = {
   hl: null,
   videoName: "",
   duration: 0,
+  file: null,
+  isAudio: false,
+  busy: false,
   rec: null,
   recStart: 0
 };
@@ -38,6 +44,8 @@ function mkCue(start,end,text){
 function syncWords(c){ c.words = c.text.trim().split(/\s+/).filter(Boolean).map(w=>({t:w,hl:false})); }
 function cueText(c){ return c.words.length ? c.words.map(w=>w.t).join(" ") : c.text; }
 function activeCue(t){ for(const c of state.cues){ if(t>=c.start && t<c.end) return c; } return null; }
+function wordIndexAt(words,t){ let k=0; for(let i=0;i<words.length;i++){ if(t>=words[i].ws) k=i; } return k; }
+function isMobile(){ return window.innerWidth<=960; }
 function totalDur(){ const v=$("#video"); return (v&&v.duration&&isFinite(v.duration))?v.duration:(state.duration||12); }
 
 /* ============================================================
@@ -51,7 +59,7 @@ function styleLine(el){
   const f = D.FONTS[t.font]||D.FONTS.jakarta;
   el.style.fontFamily=f;
   el.style.fontWeight=t.weight;
-  el.style.fontSize=(t.size*1.9*state.sizeMul).toFixed(2)+"rem";
+  el.style.fontSize=Math.max(14, Math.round((stage?stage.clientWidth:380)*0.072*t.size*state.sizeMul))+"px";
   el.style.color=col;
   el.style.textTransform=t.upper?"uppercase":"none";
   el.style.letterSpacing=(t.font==="bebas"||t.font==="anton")?".02em":"-.01em";
@@ -100,7 +108,8 @@ function renderActive(){
   el.dataset.corner = tpl.corner ? "1":"0";
   const words=cue.words.length?cue.words:[{t:cueText(cue),hl:false}];
   const dur=Math.max(.4,cue.end-cue.start);
-  const cur=clamp(Math.floor(((t-cue.start)/dur)*words.length),0,words.length-1);
+  const cur = (words[0]&&words[0].ws!=null) ? wordIndexAt(words,t)
+            : clamp(Math.floor(((t-cue.start)/dur)*words.length),0,words.length-1);
   // rebuild spans only if text changed
   const sig=words.map(w=>w.t).join("|")+"#"+words.map(w=>w.hl?1:0).join("");
   if(el.dataset.sig!==sig){
@@ -422,11 +431,18 @@ async function exportVideo(){
 /* canvas caption renderer — mirrors the DOM look */
 function drawFrame(ctx,video,W,H){
   ctx.save();
-  // cover-fit the video
-  const vr=video.videoWidth/video.videoHeight, cr=W/H;
-  let dw=W,dh=H;
-  if(vr>cr){ dh=H; dw=H*vr; } else { dw=W; dh=W/vr; }
-  ctx.drawImage(video,(W-dw)/2,(H-dh)/2,dw,dh);
+  if(!video.videoWidth){
+    // audio-only source: draw the Boliyo gradient backdrop
+    const g=ctx.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,"#E8785A"); g.addColorStop(.55,"#B5452A"); g.addColorStop(1,"#1E1E1C");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  } else {
+    // cover-fit the video
+    const vr=video.videoWidth/video.videoHeight, cr=W/H;
+    let dw=W,dh=H;
+    if(vr>cr){ dh=H; dw=H*vr; } else { dw=W; dh=W/vr; }
+    ctx.drawImage(video,(W-dw)/2,(H-dh)/2,dw,dh);
+  }
   const t=video.currentTime;
   const cue=activeCue(t);
   if(cue) drawCaption(ctx,cue,W,H,t);
@@ -437,7 +453,8 @@ function drawCaption(ctx,cue,W,H,t){
   const base=H/1280;
   const words=cue.words.length?cue.words:[{t:cueText(cue),hl:false}];
   const dur=Math.max(.4,cue.end-cue.start);
-  const cur=clamp(Math.floor(((t-cue.start)/dur)*words.length),0,words.length-1);
+  const cur = (words[0]&&words[0].ws!=null) ? wordIndexAt(words,t)
+            : clamp(Math.floor(((t-cue.start)/dur)*words.length),0,words.length-1);
   const fs=Math.round(34*base*tpl.size*state.sizeMul*1.9);
   const font=`${tpl.weight} ${fs}px ${D.FONTS[tpl.font]||"sans-serif"}`;
   ctx.font=font; ctx.textAlign="center"; ctx.textBaseline="middle";
@@ -510,20 +527,28 @@ function switchTab(name){
    ============================================================ */
 function loadFile(file){
   if(!file) return;
-  if(!/^video\//.test(file.type) && !/\.(mp4|mov|webm|m4v|ogv)$/i.test(file.name)){ toast("Please choose a video file"); return; }
+  const isVideo=/^video\//.test(file.type)||/\.(mp4|mov|webm|m4v|ogv)$/i.test(file.name);
+  const isAudio=/^audio\//.test(file.type)||/\.(mp3|wav|m4a|aac|ogg|oga|flac)$/i.test(file.name);
+  if(!isVideo && !isAudio){ toast("Please choose a video or audio file"); return; }
+  state.file=file;
+  state.isAudio=isAudio && !isVideo;
   state.videoName=file.name||"clip";
   const url=URL.createObjectURL(file);
   video.src=url;
   video.load();
   $("#fileLabel").textContent=state.videoName;
+  $("#audioBg")&&$("#audioBg").classList.toggle("on",state.isAudio);
   $("#edEmpty")&&$("#edEmpty").remove();
   video.addEventListener("loadedmetadata",()=>{
     state.duration=video.duration;
     applyAspect(); renderTimeline();
     toast("Loaded "+state.videoName+" · "+fmtShort(video.duration));
+    autoCaption();   // captions appear on their own
   },{once:true});
 }
 function loadDemo(){
+  state.file=null; state.isAudio=false;
+  $("#audioBg")&&$("#audioBg").classList.remove("on");
   // pick a source the browser can actually decode (Chromium builds without H.264 fall back to WebM)
   const canMp4 = video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
   state.videoName = canMp4 ? "demo-reel.mp4" : "demo-reel.webm";
@@ -548,6 +573,134 @@ function loadDemo(){
     renderCueList(); renderTimeline(); renderActive();
     toast("Demo clip loaded — press play");
   }
+}
+
+/* ============================================================
+   auto captions — Whisper, running on the device
+   ============================================================ */
+let _tjs=null, _pipe=null, _pipeKey="";
+async function loadTJS(){
+  if(_tjs) return _tjs;
+  _tjs = await import(/* @vite-ignore */ VENDOR_URL);
+  return _tjs;
+}
+async function getPipe(model, onProg){
+  if(_pipe && _pipeKey===model) return _pipe;
+  setAutoStatus("Fetching the speech model…");
+  const {pipeline}=await loadTJS();
+  const repo = model==="base" ? "onnx-community/whisper-base" : "onnx-community/whisper-tiny";
+  _pipe = await pipeline("automatic-speech-recognition", repo, {
+    dtype:"q8",
+    progress_callback:(p)=>{ try{ onProg&&onProg(p); }catch(e){} }
+  });
+  _pipeKey=model;
+  return _pipe;
+}
+/* decode any audio (or the audio track of a video) to 16 kHz mono */
+async function decodeTo16k(arrayBuffer){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const ctx=new AC();
+  let buf;
+  try{ buf=await ctx.decodeAudioData(arrayBuffer.slice(0)); }
+  finally{ try{ ctx.close(); }catch(e){} }
+  const rate=16000;
+  const off=new OfflineAudioContext(1, Math.max(1, Math.ceil(buf.duration*rate)), rate);
+  const src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start(0);
+  const out=await off.startRendering();
+  return out.getChannelData(0);
+}
+/* whisper chunks -> word-timed caption cues */
+function chunksToCues(chunks,total){
+  const cues=[]; const MAXW=5;
+  (chunks||[]).forEach(ch=>{
+    const ts=ch.timestamp||[0,total];
+    let start=(ts[0]==null?0:ts[0]);
+    let end=(ts[1]==null||ts[1]===Infinity)?total:ts[1];
+    const words=(ch.text||"").trim().split(/\s+/).filter(Boolean);
+    if(!words.length) return;
+    if(end<=start) end=start+Math.max(.8,words.length*0.35);
+    const dur=Math.max(.4,end-start);
+    const totalChars=words.reduce((a,w)=>a+w.length,0)||1;
+    let t=start,i=0;
+    while(i<words.length){
+      const grp=words.slice(i,i+MAXW);
+      const chars=grp.reduce((a,w)=>a+w.length,0)||1;
+      const gDur=Math.max(.4, dur*(chars/totalChars));
+      const c={id:uid(),start:t,end:Math.min(end,t+gDur),text:"",words:[]};
+      let wt=t;
+      grp.forEach(w=>{
+        const wd=Math.max(.12,gDur*(w.length/chars));
+        c.words.push({t:w,hl:false,ws:wt,we:wt+wd}); wt+=wd;
+      });
+      c.text=grp.join(" ");
+      let hl=grp.findIndex(w=>/[0-9]/.test(w)||/^(₹|\$)/.test(w));
+      if(hl<0){ let mx=-1; grp.forEach((w,k)=>{ if(w.length>mx){mx=w.length;hl=k;} }); }
+      if(c.words[hl]) c.words[hl].hl=true;
+      cues.push(c); t+=gDur; i+=MAXW;
+    }
+  });
+  return cues;
+}
+function setAutoProg(frac,label){
+  const bar=$("#capProg"); if(bar) bar.style.width = (frac==null?0:Math.round(clamp(frac,0,1)*100))+"%";
+  if(label) setAutoStatus(label);
+}
+function setAutoStatus(msg,cls){ const s=$("#capStatus"); if(!s)return; s.textContent=msg; s.className="status"+(cls?" "+cls:""); }
+function setAutoBusy(on){ const b=$("#autoBtn"); if(b){ b.disabled=on; b.textContent=on?"✨ Working…":"✨ Generate captions"; } }
+
+async function autoCaption(){
+  if(state.busy) return;
+  if(!video || !video.src){ toast("Load a video or voiceover first"); return; }
+  if(isMobile()) togglePanel(true);
+  switchTab("auto");
+  state.busy=true; setAutoBusy(true); setAutoProg(0);
+  try{
+    const model=($("#modelSel")&&$("#modelSel").value)||"tiny";
+    const lang=($("#langSel")&&$("#langSel").value)||"";
+    setAutoStatus("Waking up the speech model…");
+    const pipe=await getPipe(model,(p)=>{
+      if(p && p.status==="progress" && p.total){
+        setAutoProg(p.loaded/p.total, "Downloading model · "+Math.round(p.loaded/p.total*100)+"%");
+      } else if(p && p.status==="ready"){ setAutoStatus("Model ready."); }
+    });
+    setAutoProg(null); setAutoStatus("Listening to your audio…");
+    let pcm;
+    if(state.file){ pcm=await decodeTo16k(await state.file.arrayBuffer()); }
+    else { pcm=await decodeTo16k(await (await fetch(video.currentSrc)).arrayBuffer()); }
+    setAutoStatus("Writing captions…");
+    const opts={return_timestamps:true, chunk_length_s:30, stride_length_s:5};
+    if(lang){ opts.language=lang; opts.task="transcribe"; }
+    const out=await pipe(pcm,opts);
+    const total=(video.duration&&isFinite(video.duration))?video.duration:(pcm.length/16000);
+    const cues=chunksToCues(out.chunks||[], total);
+    if(!cues.length){
+      setAutoStatus("Couldn't hear any speech. Try a clearer clip, or pick the spoken language.","err");
+    } else {
+      state.cues=cues; state.sel=cues[0].id;
+      renderCueList(); renderTimeline(); renderActive();
+      setAutoStatus("Wrote "+cues.length+" captions. Tweak any word in Captions.","ok");
+      toast("✨ "+cues.length+" captions written");
+      switchTab("captions");
+    }
+  }catch(e){
+    console.error(e);
+    setAutoStatus("Auto-captions failed: "+((e&&e.message)||e)+". You can still type or dictate captions.","err");
+  }finally{
+    state.busy=false; setAutoBusy(false); setAutoProg(null);
+  }
+}
+function populateLangs(){
+  const sel=$("#langSel"); if(!sel) return;
+  sel.innerHTML='<option value="">Auto-detect</option>'+D.LANGS.map(l=>`<option value="${l.w||l.code}">${l.name} · ${l.roman}</option>`).join("");
+}
+function buildWave(){
+  const w=$("#waveBars"); if(!w) return;
+  w.innerHTML=Array.from({length:16}).map((_,i)=>`<i style="animation-delay:${(i*0.07).toFixed(2)}s;height:${14+((i*11)%46)}px"></i>`).join("");
+}
+function togglePanel(open){
+  const p=$("#edPanel"), b=$("#backdrop"); if(!p) return;
+  const on = (open===undefined) ? !p.classList.contains("open") : open;
+  p.classList.toggle("open",on); b&&b.classList.toggle("show",on);
 }
 
 /* ============================================================
@@ -629,8 +782,13 @@ function init(){
   ["timeupdate"].forEach(ev=>video&&video.addEventListener(ev,()=>{ if(Math.random()<0.05) save(); }));
   window.addEventListener("beforeunload",save);
 
-  // mobile panel toggle
-  $("#panelBtn")&&$("#panelBtn").addEventListener("click",()=>$(".ed-panel").classList.toggle("open"));
+  // auto captions + mobile panel
+  populateLangs(); buildWave();
+  $("#autoBtn")&&$("#autoBtn").addEventListener("click",autoCaption);
+  $("#autoTopBtn")&&$("#autoTopBtn").addEventListener("click",()=>{ if(isMobile()) togglePanel(true); autoCaption(); });
+  $("#panelBtn")&&$("#panelBtn").addEventListener("click",()=>togglePanel());
+  $("#backdrop")&&$("#backdrop").addEventListener("click",()=>togglePanel(false));
+  window.addEventListener("resize",()=>{ if(!isMobile()) togglePanel(false); });
 
   // keyboard
   document.addEventListener("keydown",e=>{
@@ -640,7 +798,7 @@ function init(){
     if(e.key==="ArrowRight") video.currentTime=Math.min(totalDur(),video.currentTime+1/30);
   });
 
-  window.addEventListener("resize",applyAspect);
+  window.addEventListener("resize",()=>{ applyAspect(); renderActive(); });
 
   // restore
   try{

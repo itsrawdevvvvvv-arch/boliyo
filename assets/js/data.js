@@ -59,17 +59,17 @@ const BOLIYO_SOUNDS = [
 ];
 
 const BOLIYO_LANGS = [
-  {code:"hi", name:"Hindi",    script:"हिन्दी",  roman:"Hinglish"},
-  {code:"en", name:"English",  script:"English", roman:"English"},
-  {code:"bn", name:"Bengali",  script:"বাংলা",   roman:"Banglish"},
-  {code:"gu", name:"Gujarati", script:"ગુજરાતી", roman:"Gujlish"},
-  {code:"kn", name:"Kannada",  script:"ಕನ್ನಡ",   roman:"Kanglish"},
-  {code:"ml", name:"Malayalam",script:"മലയാളം",  roman:"Manglish"},
-  {code:"mr", name:"Marathi",  script:"मराठी",   roman:"Marathi"},
-  {code:"or", name:"Odia",     script:"ଓଡ଼ିଆ",   roman:"Odia"},
-  {code:"pa", name:"Punjabi",  script:"ਪੰਜਾਬੀ",  roman:"Punglish"},
-  {code:"ta", name:"Tamil",    script:"தமிழ்",   roman:"Tanglish"},
-  {code:"te", name:"Telugu",   script:"తెలుగు",  roman:"Tenglish"}
+  {code:"hi", name:"Hindi",    script:"हिन्दी",  roman:"Hinglish", w:"hindi"},
+  {code:"en", name:"English",  script:"English", roman:"English", w:"english"},
+  {code:"bn", name:"Bengali",  script:"বাংলা",   roman:"Banglish", w:"bengali"},
+  {code:"gu", name:"Gujarati", script:"ગુજરાતી", roman:"Gujlish", w:"gujarati"},
+  {code:"kn", name:"Kannada",  script:"ಕನ್ನಡ",   roman:"Kanglish", w:"kannada"},
+  {code:"ml", name:"Malayalam",script:"മലയാളം",  roman:"Manglish", w:"malayalam"},
+  {code:"mr", name:"Marathi",  script:"मराठी",   roman:"Marathi", w:"marathi"},
+  {code:"or", name:"Odia",     script:"ଓଡ଼ିଆ",   roman:"Odia", w:"odia"},
+  {code:"pa", name:"Punjabi",  script:"ਪੰਜਾਬੀ",  roman:"Punglish", w:"punjabi"},
+  {code:"ta", name:"Tamil",    script:"தமிழ்",   roman:"Tanglish", w:"tamil"},
+  {code:"te", name:"Telugu",   script:"తెలుగు",  roman:"Tenglish", w:"telugu"}
 ];
 
 const BOLIYO_CATEGORIES = ["Popular","Behind you","Bold & animated","Clean","Property reels","Around you"];

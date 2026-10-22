@@ -15,7 +15,9 @@ HTML, CSS and JavaScript.
 
 | Feature | Status |
 |---|---|
-| Load a video (drag-drop or file picker) | ✅ |
+| **Auto captions from an uploaded video or voiceover** (Whisper, on-device) | ✅ |
+| Accepts video *and* audio (MP4 · MOV · WebM · MP3 · WAV · M4A) | ✅ |
+| Spoken-language picker (Hinglish/Hindi + 10 Indian languages) + auto-detect | ✅ |
 | Bundled 12-second demo clip | ✅ |
 | Word-timed captions synced to playback | ✅ |
 | Live caption rendering on the video | ✅ |
@@ -30,9 +32,16 @@ HTML, CSS and JavaScript.
 | Aspect ratios 9:16 · 16:9 · 1:1 · 4:5 | ✅ |
 | Projects saved to your browser (localStorage) | ✅ |
 
+**How auto captions work:** Boliyo loads [Whisper](https://github.com/openai/whisper)
+through [transformers.js](https://github.com/huggingface/transformers.js) and runs
+it locally with WebAssembly. The first run downloads the speech model once
+(~40 MB for *Tiny*, ~80 MB for *Base*) and the browser caches it. Nothing is
+uploaded — the audio never leaves the device.
+
 Live dictation and video export use browser APIs that are best supported in
 Chromium browsers. Export plays the clip through once in real time while it
-records.
+records. It is built mobile-first: the editor's right-hand panel becomes a
+bottom sheet on phones.
 
 ## Run it locally
 
@@ -61,9 +70,16 @@ assets/css/style.css  design system
 assets/js/data.js     templates, sounds, languages
 assets/js/editor.js   the caption engine
 assets/js/app.js      site interactions
+assets/js/vendor/transformers.min.js   transformers.js (Apache-2.0) — runs Whisper in the browser
 assets/video/demo-reel.mp4   bundled demo clip (H.264)
 assets/video/demo-reel.webm  same clip (VP9) — auto-picked where MP4/H.264 is unavailable
 ```
+
+## Credits
+
+- [transformers.js](https://github.com/huggingface/transformers.js) — Apache-2.0
+- [Whisper](https://github.com/openai/whisper) models — MIT (OpenAI), via the
+  `onnx-community/whisper-tiny` / `whisper-base` ONNX conversions on Hugging Face
 
 ## License
 
